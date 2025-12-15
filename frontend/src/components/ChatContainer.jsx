@@ -79,6 +79,10 @@ function ChatContainer() {
                             {new Date(msg.createdAt).toLocaleTimeString(undefined, {
                             hour: "2-digit",
                             minute: "2-digit",
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                            
                             })}
                         </p>
 

@@ -1,5 +1,4 @@
 import axiosInstance from "./utilities/axios";
-import useAuthStore from "./store/useAuthStore";
 
 // ----------------- SIGNUP -----------------
 

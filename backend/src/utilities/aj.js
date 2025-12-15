@@ -5,7 +5,7 @@ const aj = arcjet({
   rules: [
     shield({ mode: "LIVE" }),           // Shield protects your app from common attacks e.g. SQL injection
     detectBot({
-      mode: "DRY_RUN",                     // Blocks requests. Use "DRY_RUN" to log only
+      mode: "LIVE",                     // Blocks requests. Use "DRY_RUN" to log only
       allow: [                          
         "CATEGORY:SEARCH_ENGINE",       // Google, Bing, etc
         "CATEGORY:MONITOR",             // Uptime monitoring services
