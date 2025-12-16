@@ -35,7 +35,7 @@ router.post('/login',
             res.cookie("authToken", generateToken(user._id), {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
-                // sameSite: 'true',
+                sameSite: 'none',
                 maxAge: 24 * 60 * 60 * 1000,
             });
 
@@ -52,7 +52,7 @@ router.post('/logout', (req, res) => {
     res.clearCookie('authToken', {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        // sameSite: 'true',
+        sameSite: 'none',
     });
 
     res.status(200).json({ message: 'Logged out successfully' });
