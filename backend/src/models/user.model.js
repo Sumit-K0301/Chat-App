@@ -18,20 +18,64 @@ const userSchema = new Schema(
         password: {
             type: String,
             required: true,
+            select: false,
         },
         profilePic: {
             type: String,
             default: null,
         },
-    }, {timestamps: true});
+        bio: {
+            type: String,
+            trim: true,
+            maxlength: 200,
+            default: '',
+        },
+        theme: {
+            type: String,
+            enum: ['dark', 'light'],
+            default: 'dark',
+        },
+        isVerified: {
+            type: Boolean,
+            default: false,
+        },
+        verificationToken: {
+            type: String,
+            default: null,
+        },
+        verificationTokenExpiry: {
+            type: Date,
+            default: null,
+        },
+        resetPasswordToken: {
+            type: String,
+            default: null,
+        },
+        resetPasswordTokenExpiry: {
+            type: Date,
+            default: null,
+        },
+        pushSubscription: {
+            type: Object,
+            default: null,
+        },
+    }, { timestamps: true });
 
-userSchema.pre('save', async function (next) {
+userSchema.pre('save', async function () {
     if (this.isModified('password')) {
         this.password = await bcrypt.hash(this.password, 10);
     }
-    
-    //next();
-})
+});
+
+// Exclude password from JSON responses
+userSchema.set('toJSON', {
+    transform: (doc, ret) => {
+        delete ret.password;
+        delete ret.verificationToken;
+        delete ret.resetPasswordToken;
+        return ret;
+    }
+});
 
 const User = mongoose.model('User', userSchema);
 export default User;

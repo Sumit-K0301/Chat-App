@@ -1,34 +1,23 @@
 import { isSpoofedBot } from "@arcjet/inspect";
-import aj from "../utilities/aj.js";
+import aj from "../config/arcjet.js";
 
-const arcjet = async function (req,res,next) {
+const arcjet = async function (req, res, next) {
     try {
-        const decision = await aj.protect(req, { requested: 1 }); 
+        const decision = await aj.protect(req, { requested: 1 });
 
-        if(decision.isDenied()) 
-        {
+        if (decision.isDenied()) {
             if (decision.reason.isRateLimit()) {
-            res.status(429).json({ error: "Too many requests, please try again later." });
+                return res.status(429).json({ error: "Too many requests, please try again later." });
             } else if (decision.reason.isBot()) {
-            res.status(403).json({ error: "Access denied for bots." });
+                return res.status(403).json({ error: "Access denied for bots." });
             } else {
-            res.status(403).json({ error: "Access denied." });
+                return res.status(403).json({ error: "Access denied." });
             }
-        } 
-        
-        else if (decision.ip.isHosting()) 
-        {
-            res.status(403).json({ error: "Access denied from hosting providers." });
-        } 
-        
-        else if (decision.results.some(isSpoofedBot)) 
-        {
-            res.status(403).json({ error: "Access denied for suspected spoofed bots." });
-        } 
-        
-        else 
-        {
-            console.log("Request allowed");
+        } else if (decision.ip.isHosting()) {
+            return res.status(403).json({ error: "Access denied from hosting providers." });
+        } else if (decision.results.some(isSpoofedBot)) {
+            return res.status(403).json({ error: "Access denied for suspected spoofed bots." });
+        } else {
             next();
         }
 

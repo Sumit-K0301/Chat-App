@@ -1,53 +1,133 @@
-import { create } from 'zustand';
-import axiosInstance from '../utilities/axios';
-
-import {io} from "socket.io-client"
+import { create } from "zustand";
+import axiosInstance from "../api/axiosInstance";
+import toast from "react-hot-toast";
 
 const useAuthStore = create((set, get) => ({
+  currentUser: null,
+  isAuthenticated: false,
+  isCheckingAuth: true,
+  isLoggingIn: false,
+  isSigningUp: false,
+  isUpdatingProfile: false,
 
-    userID: null,
-    isAuthenticated: false,
-    socket: null,
-    onlineUsers : [],
+  checkAuth: async () => {
+    try {
+      const res = await axiosInstance.get("/api/auth/status");
+      if (res.status === 200) {
+        set({ isAuthenticated: true });
+        await get().fetchProfile();
+      }
+    } catch {
+      set({ isAuthenticated: false, currentUser: null });
+    } finally {
+      set({ isCheckingAuth: false });
+    }
+  },
 
-    authenticate: async () => {
-        try {
-            const response = await axiosInstance.get('/api/auth/status')
-                
-            set({ isAuthenticated: true, userID: response.data.userId});
-                console.log('User is authenticated');
-            get().connectSocket()
-            
-        }
+  fetchProfile: async () => {
+    try {
+      const res = await axiosInstance.get("/api/user/profile");
+      set({ currentUser: res.data });
+    } catch {
+      toast.error("Failed to load profile");
+    }
+  },
 
-        catch (error) {
-            set({ isAuthenticated: false, userID: null });
-            console.error('Authentication check failed:', error);
-        }
-    },
+  login: async (email, password) => {
+    set({ isLoggingIn: true });
+    const toastId = toast.loading("Logging in...");
+    try {
+      await axiosInstance.post("/api/auth/login", { email, password });
+      set({ isAuthenticated: true });
+      await get().fetchProfile();
+      toast.success("Logged in successfully", { id: toastId });
+    } catch (err) {
+      const msg = err.response?.data?.message || "Login failed";
+      toast.error(msg, { id: toastId });
+      throw err;
+    } finally {
+      set({ isLoggingIn: false });
+    }
+  },
 
-    connectSocket: () => {
-        const { userID } = get();
-        if (!userID || get().socket?.connected) return;
+  signup: async (fullname, email, password) => {
+    set({ isSigningUp: true });
+    const toastId = toast.loading("Creating account...");
+    try {
+      await axiosInstance.post("/api/user/register", { fullname, email, password });
+      set({ isAuthenticated: true });
+      await get().fetchProfile();
+      toast.success("Account created successfully", { id: toastId });
+    } catch (err) {
+      const msg =
+        err.response?.data?.errors?.[0]?.msg ||
+        err.response?.data?.message ||
+        "Signup failed";
+      toast.error(msg, { id: toastId });
+      throw err;
+    } finally {
+      set({ isSigningUp: false });
+    }
+  },
 
-        const socket = io(import.meta.env.VITE_BACKEND_URL, {
-            withCredentials: true,
-        });
+  logout: async () => {
+    try {
+      await axiosInstance.post("/api/auth/logout");
+      set({ isAuthenticated: false, currentUser: null });
+      localStorage.removeItem("contact_nicknames");
+      toast.success("Logged out");
+    } catch {
+      toast.error("Logout failed");
+    }
+  },
 
-        socket.connect();
+  updateProfile: async (formData) => {
+    set({ isUpdatingProfile: true });
+    const toastId = toast.loading("Updating profile...");
+    try {
+      const res = await axiosInstance.put("/api/user/update-profile", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      set({ currentUser: res.data.updatedUser });
+      toast.success("Profile updated", { id: toastId });
+    } catch (err) {
+      const msg = err.response?.data?.message || "Update failed";
+      toast.error(msg, { id: toastId });
+      throw err;
+    } finally {
+      set({ isUpdatingProfile: false });
+    }
+  },
 
-        set({ socket });
+  forgotPassword: async (email) => {
+    try {
+      const res = await axiosInstance.post("/api/auth/forgot-password", { email });
+      toast.success(res.data.message || "Reset link sent");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to send reset link");
+      throw err;
+    }
+  },
 
-        // Listen for online users event
-        socket.on("getOnlineUsers", (userIds) => {
-            set({ onlineUsers: userIds });
-        });
-    },
+  resetPassword: async (token, password) => {
+    try {
+      const res = await axiosInstance.post(`/api/auth/reset-password/${token}`, { password });
+      toast.success(res.data.message || "Password reset successful");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Reset failed");
+      throw err;
+    }
+  },
 
-    disconnectSocket: () => {
-        if (get().socket?.connected) get().socket.disconnect();
-    },
-
+  resendVerification: async () => {
+    try {
+      const res = await axiosInstance.post("/api/auth/resend-verification");
+      toast.success(res.data.message || "Verification email sent");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to resend");
+      throw err;
+    }
+  },
 }));
 
 export default useAuthStore;

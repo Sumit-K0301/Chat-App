@@ -1,8 +1,7 @@
 import express from 'express';
-import { check, validationResult } from 'express-validator';
-import User from '../models/user.model.js';
-import bcrypt from 'bcryptjs';
-import generateToken from '../utilities/generateToken.js';
+import { check } from 'express-validator';
+import { login, logout, status, forgotPassword, resetPassword } from '../controllers/auth.controller.js';
+import { verifyEmail, resendVerification } from '../controllers/user.controller.js';
 import verifyToken from '../middlewares/auth.js';
 
 const router = express.Router();
@@ -12,54 +11,26 @@ router.post('/login',
         check('email', 'Please include a valid email').isEmail(),
         check('password', 'Please include a valid password').isLength({ min: 6 }),
     ],
-    async (req, res) => {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({ errors: errors.array() });
-        }   
+    login
+);
 
-        try {
+router.post('/logout', logout);
 
-            const { email, password } = req.body;
+router.get('/status', verifyToken, status);
 
-            const user = await User.findOne({ email });
-            if (!user) {
-                return res.status(400).json({ message: 'Invalid credentials' });
-            }
+// F11: Email verification
+router.get('/verify-email/:token', verifyEmail);
+router.post('/resend-verification', verifyToken, resendVerification);
 
-            const isMatch = await bcrypt.compare(password, user.password);
-            if (!isMatch) {
-                return res.status(400).json({ message: 'Invalid credentials' });
-            }
+// F12: Forgot / Reset password
+router.post('/forgot-password',
+    [check('email', 'Please include a valid email').isEmail()],
+    forgotPassword
+);
 
-            res.cookie("authToken", generateToken(user._id), {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'none',
-                maxAge: 24 * 60 * 60 * 1000,
-            });
-
-            res.status(200).json({ message: 'Logged in successfully' });
-        }
-
-        catch (error) {
-            console.error(error);
-            res.status(500).json({ message: 'Login unsuccessful' });
-        }
-});
-
-router.post('/logout', (req, res) => {
-    res.clearCookie('authToken', {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'none',
-    });
-
-    res.status(200).json({ message: 'Logged out successfully' });
-});
-
-router.get('/status', verifyToken, (req, res) => {
-    res.status(200).json({ message: 'User is authenticated', userId: req.id });
-})
+router.post('/reset-password/:token',
+    [check('password', 'Password must be at least 6 characters').isLength({ min: 6 })],
+    resetPassword
+);
 
 export default router;

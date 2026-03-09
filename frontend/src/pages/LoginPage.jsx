@@ -1,148 +1,84 @@
-import React from 'react'
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { LogIn, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import useAuthStore from "../store/useAuthStore";
 
-import { useMutation } from "@tanstack/react-query"
-import { useForm } from "react-hook-form"
-import * as apiClient from "../apiClient"
-import useAuthStore from "../store/useAuthStore"
-import { Link } from "react-router-dom"
+export default function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const { login, isLoggingIn } = useAuthStore();
+  const navigate = useNavigate();
 
-import BorderAnimatedContainer from "../components/BorderAnimatedContainer.jsx"
-import { LuMessageCircle } from "react-icons/lu"
-import toast from 'react-hot-toast';
-
-
-function LoginPage() {
-  const { authenticate, connectSocket } = useAuthStore();
-
-  const { register, handleSubmit, formState: { errors } } = useForm();
-
-  const mutation = useMutation({
-    mutationFn: apiClient.login,
-    onSuccess: () => {
-      authenticate();
-      connectSocket(); 
-      console.log("Login successful");
-    },
-
-    onError: (error) => {
-      console.error("Login failed:", error.response.data.message);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await login(email, password);
+      navigate("/");
+    } catch {
+      // error handled via toast in store
     }
-  });
-
-  const onSubmit = handleSubmit((data) => toast.promise(
-        mutation.mutateAsync(data), // use mutateAsync, not mutate
-        {
-            loading: 'Logging In...',
-            success: 'Logged In!',
-            error: (err) => err.response?.data?.message || "Login Failed"
-        }
-    ));
-
+  };
 
   return (
-    <>
-      <div className="w-full flex items-center justify-center p-4 bg-slate-900">
-        <div className="relative w-full max-w-6xl md:h-[800px] h-[650px]">
-          <BorderAnimatedContainer>
-            <div className="w-full flex flex-col md:flex-row">
-
-              {/* FORM ILLUSTRATION - LEFT SIDE */}
-              <div className="hidden md:w-1/2 md:flex items-center justify-center p-6 bg-gradient-to-bl from-slate-800/20 to-transparent">
-                <div>
-                  <img
-                    src="/asset.png"
-                    alt="People using mobile devices"
-                    className="w-full h-auto object-contain"
-                  />
-                    <div className="mt-6 text-center">
-                    <h3 className="text-xl font-medium text-cyan-400">Connect anytime, anywhere</h3>
-
-                    <div className="mt-4 flex justify-center gap-4">
-                      <span className="auth-badge">Free</span>
-                      <span className="auth-badge">Easy Setup</span>
-                      <span className="auth-badge">Private</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* FORM CLOUMN - RIGHT SIDE */}
-              <div className="md:w-1/2 p-8 flex items-center justify-center md:border-r border-slate-600/30">
-                <div className="w-full max-w-md">
-
-                  {/* HEADING TEXT */}
-                  <div className="text-center mb-8">
-                    <LuMessageCircle className="w-12 h-12 mx-auto text-slate-400 mb-4" />
-                    <h2 className="text-2xl font-bold text-slate-200 mb-2">Welcome Back</h2>
-                    <p className="text-slate-400">Login to access to your account</p>
-                  </div>
-
-                  {/* FORM */}
-                  <form className="px-12 space-y-6" onSubmit={onSubmit} >
-
-                    {/* EMAIL INPUT */}
-                    <div>
-                      <label className="auth-input-label">Email</label>
-                      <input
-                        type="email"
-                        className="input w-full"
-                        placeholder="johndoe@gmail.com"
-                        {...register("email", {
-                          required: "This field is required",
-                          pattern: {
-                                      // This regex checks for characters@characters.domain
-                                      value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
-                                      message: "Please enter a valid email address",
-                                    }
-                        })}
-                      />
-
-                      {errors.email && (<div className="text-red-400">{errors.email.message}</div>)}
-                    </div>
-
-                    {/* PASSWORD INPUT */}
-                    <div>
-                      <label className="auth-input-label">Password</label>
-
-                      <input
-                        type="password"
-                        className="input w-full"
-                        placeholder="Enter your password"
-                        {...register("password", {
-                          required: "This field is required",
-                          minLength: {
-                            value: 6,
-                            message: "Password must be of atleast 6 characters"
-                          }
-                        })}
-                      />
-
-                      {errors.password && (<div className="text-red-400">{errors.password.message}</div>)}
-                    </div>
-
-                    {/* SUBMIT BUTTON */}
-                    <button className="btn bg-blue-600 w-full hover:bg-green-600" type='submit'>
-                      Log In
-                    </button>
-                  </form>
-
-                  <div className="mt-6 text-center">
-                    Don't have an account?&nbsp;
-                    <Link to="/signup" className="font-semibold text-blue-400 hover:underline hover:text-blue-600">
-                      Sign Up
-                    </Link>
-                  </div>
-                </div>
-              </div>
-
-
+    <div className="min-h-screen flex items-center justify-center bg-base-200 p-4">
+      <div className="card w-full max-w-md bg-base-100 shadow-xl">
+        <div className="card-body">
+          <div className="flex flex-col items-center gap-2 mb-4">
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+              <LogIn className="w-6 h-6 text-primary" />
             </div>
-          </BorderAnimatedContainer>
+            <h1 className="text-2xl font-bold">Welcome Back</h1>
+            <p className="text-base-content/60 text-sm">Sign in to your account</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+            <label className="input input-bordered flex items-center gap-2 w-full">
+              <Mail className="w-4 h-4 opacity-50" />
+              <input
+                type="email"
+                placeholder="Email"
+                className="grow"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </label>
+
+            <label className="input input-bordered flex items-center gap-2 w-full">
+              <Lock className="w-4 h-4 opacity-50" />
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="Password"
+                className="grow"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="btn btn-ghost btn-xs btn-circle">
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </label>
+
+            <div className="text-left">
+              <Link to="/forgot-password" className="link link-primary text-sm">
+                Forgot password?
+              </Link>
+            </div>
+
+            <button type="submit" className="btn btn-primary w-full" disabled={isLoggingIn}>
+              {isLoggingIn ? <span className="loading loading-spinner loading-sm" /> : "Sign In"}
+            </button>
+          </form>
+
+          <p className="text-center text-sm mt-4">
+            Don&apos;t have an account?{" "}
+            <Link to="/signup" className="link link-primary">
+              Create account
+            </Link>
+          </p>
         </div>
       </div>
-
-    </>
-  )
+    </div>
+  );
 }
-
-export default LoginPage

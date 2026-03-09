@@ -1,56 +1,77 @@
-import React, { useEffect, useRef } from 'react'
-import { Routes, Route} from 'react-router-dom'
-import { Navigate } from 'react-router-dom'
+import { useEffect } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
+import useAuthStore from "./store/useAuthStore";
+import useThemeStore from "./store/useThemeStore";
+import LoadingSpinner from "./components/common/LoadingSpinner";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
+import GuestRoute from "./components/auth/GuestRoute";
 
-import useAuthStore from './store/useAuthStore.js'
-import { Toaster } from 'react-hot-toast';
+import HomePage from "./pages/HomePage";
+import LoginPage from "./pages/LoginPage";
+import SignupPage from "./pages/SignupPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
+import VerifyEmailPage from "./pages/VerifyEmailPage";
+import NotFoundPage from "./pages/NotFoundPage";
 
-import LoginPage from './pages/LoginPage.jsx'
-import SignupPage from './pages/SignupPage.jsx'
-import MessagePage from './pages/MessagePage.jsx'
-import ErrorPage from './pages/ErrorPage.jsx' 
-
-
-function App() {
-
-  const {isAuthenticated, authenticate} = useAuthStore();
+export default function App() {
+  const { checkAuth, isCheckingAuth } = useAuthStore();
+  const { initTheme } = useThemeStore();
 
   useEffect(() => {
-    authenticate();
-    console.log("Authentication status:", isAuthenticated);
+    initTheme();
+    checkAuth();
   }, []);
+
+  if (isCheckingAuth) {
+    return (
+      <div className="h-screen">
+        <LoadingSpinner size="w-12 h-12" />
+      </div>
+    );
+  }
 
   return (
     <>
-
-      <div className="min-h-screen bg-slate-900 relative flex items-center justify-center p-4 box-border overflow-hidden">
-        {/* Background Blurs */}
-        <div className="relative">
-          <div className="absolute top-0 -left-4 size-96 bg-pink-500 opacity-20 blur-[100px]" />
-          <div className="absolute bottom-0 -right-4 size-96 bg-cyan-500 opacity-20 blur-[100px]" />
-        </div>
-        <Toaster />
-
-        <Routes>
-
-          <Route path="/" 
-          element={isAuthenticated ? <MessagePage /> : <LoginPage />} />
-
-          <Route path="/signup" 
-          element={isAuthenticated ? <Navigate to={"/"} /> : <SignupPage />} />
-
-         
-          <Route path="/login" 
-          element={isAuthenticated ? <Navigate to={"/"} /> : <LoginPage />} /> 
-        
-
-          <Route path="*" element={<ErrorPage />} />
-          
-        </Routes>
-      </div>
-
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <HomePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/login"
+          element={
+            <GuestRoute>
+              <LoginPage />
+            </GuestRoute>
+          }
+        />
+        <Route
+          path="/signup"
+          element={
+            <GuestRoute>
+              <SignupPage />
+            </GuestRoute>
+          }
+        />
+        <Route
+          path="/forgot-password"
+          element={
+            <GuestRoute>
+              <ForgotPasswordPage />
+            </GuestRoute>
+          }
+        />
+        <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+        <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+      <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
     </>
-  )
+  );
 }
-
-export default App
